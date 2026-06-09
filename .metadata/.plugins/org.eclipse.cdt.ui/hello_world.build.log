@@ -1,0 +1,6 @@
+22:47:07 **** Incremental Build of configuration x86_64-debug for project hello_world ****
+make -j16 all 
+make: Nothing to be done for 'all'.
+
+22:47:07 Build Finished. 0 errors, 0 warnings. (took 66ms)
+

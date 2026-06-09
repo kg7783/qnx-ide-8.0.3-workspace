@@ -1,0 +1,6 @@
+23:03:08 **** Clean-only build of configuration x86_64-debug for project Hello_World ****
+make -j16 clean 
+rm -fr build/x86_64-debug
+
+23:03:08 Build Finished. 0 errors, 0 warnings. (took 69ms)
+

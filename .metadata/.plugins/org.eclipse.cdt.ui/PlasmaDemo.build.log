@@ -1,0 +1,6 @@
+23:53:08 **** Incremental Build of configuration x86_64-debug for project PlasmaDemo ****
+make -j16 all 
+make: Nothing to be done for 'all'.
+
+23:53:08 Build Finished. 0 errors, 0 warnings. (took 62ms)
+
