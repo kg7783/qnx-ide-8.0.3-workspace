@@ -201,6 +201,420 @@ void main() {
 }
 )";
 
+// ── Effect 4: Tunnel ──
+static const char *tunnel_frag = R"(
+precision mediump float;
+varying vec2 v_uv;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform int u_palette;
+
+void main() {
+    vec2 uv = v_uv;
+    float ar = u_resolution.x / u_resolution.y;
+    vec2 p = (uv - 0.5) * vec2(ar, 1.0);
+    float t = u_time;
+
+    float a = atan(p.y, p.x);
+    float r = length(p);
+
+    float tunnel = sin(r * 20.0 - t * 2.0) * 0.5 + 0.5;
+    tunnel += sin(a * 8.0 + t * 1.0) * 0.3;
+    tunnel += sin((a + r) * 10.0 + t * 0.5) * 0.2;
+    tunnel = tunnel / 1.5;
+
+    float v = clamp(tunnel, 0.0, 1.0);
+
+    vec3 col;
+    if (u_palette == 0) {
+        col = mix(vec3(0.0, 0.0, 0.1), vec3(0.3, 0.0, 0.5), v);
+        col = mix(col, vec3(1.0, 0.5, 0.0), smoothstep(0.5, 1.0, v));
+    } else if (u_palette == 1) {
+        col = mix(vec3(0.0, 0.1, 0.0), vec3(0.0, 0.8, 0.3), v);
+        col = mix(col, vec3(0.5, 1.0, 0.5), smoothstep(0.6, 1.0, v));
+    } else if (u_palette == 2) {
+        col = mix(vec3(0.05, 0.0, 0.1), vec3(0.8, 0.0, 0.8), v);
+        col = mix(col, vec3(1.0, 0.6, 1.0), smoothstep(0.5, 1.0, v));
+    } else {
+        col = 0.5 + 0.5 * cos(v * 6.28 + vec3(0.0, 2.1, 4.2) + t * 0.2);
+    }
+    gl_FragColor = vec4(col, 1.0);
+}
+)";
+
+// ── Effect 5: Aurora ──
+static const char *aurora_frag = R"(
+precision mediump float;
+varying vec2 v_uv;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform int u_palette;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+    vec2 uv = v_uv;
+    float ar = u_resolution.x / u_resolution.y;
+    vec2 p = (uv - 0.5) * vec2(ar, 1.0);
+    float t = u_time;
+
+    float v = 0.0;
+    for (int i = 0; i < 6; i++) {
+        float fi = float(i);
+        float x = p.x * 2.0 + sin(t * 0.25 + fi * 1.3) * 1.5;
+        float y = p.y * 3.0 + cos(t * 0.2 + fi * 0.9) * 1.2;
+        float d = length(vec2(x, y));
+        v += (1.0 - smoothstep(0.4, 1.8, d)) * (0.4 + 0.4 * sin(t * 0.4 + fi * 2.5));
+    }
+    v = clamp(v * 0.22, 0.0, 1.0);
+    v = pow(v, 0.7);
+
+    vec3 col;
+    if (u_palette == 0) {
+        col = mix(vec3(0.0, 0.02, 0.05), vec3(0.0, 0.8, 0.5), v);
+        col = mix(col, vec3(0.2, 1.0, 0.3), smoothstep(0.5, 1.0, v));
+    } else if (u_palette == 1) {
+        col = mix(vec3(0.05, 0.0, 0.05), vec3(1.0, 0.2, 0.6), v);
+        col = mix(col, vec3(1.0, 0.8, 0.4), smoothstep(0.5, 1.0, v));
+    } else if (u_palette == 2) {
+        float h = 0.55 + 0.25 * sin(v * 6.28 + t * 0.1);
+        col = hsv2rgb(vec3(h, 0.55, 0.3 + v * 0.7));
+    } else {
+        col = 0.5 + 0.5 * cos(v * 4.0 + vec3(0.0, 0.5, 1.5) + t * 0.15);
+    }
+    gl_FragColor = vec4(col, 1.0);
+}
+)";
+
+// ── Effect 6: Kaleidoscope ──
+static const char *kaleido_frag = R"(
+precision mediump float;
+varying vec2 v_uv;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform int u_palette;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+    vec2 uv = v_uv;
+    float ar = u_resolution.x / u_resolution.y;
+    vec2 p = (uv - 0.5) * vec2(ar, 1.0);
+    float t = u_time;
+
+    float a = atan(p.y, p.x);
+    float r = length(p);
+
+    float segs = 8.0;
+    float aa = mod(a, 6.2832 / segs);
+    aa = abs(aa - 3.1416 / segs);
+    aa = aa * segs / 3.1416;
+
+    vec2 q = vec2(aa, r + 0.2 * sin(t * 0.5));
+    q.x += 0.1 * sin(q.y * 10.0 + t);
+    q.y += 0.1 * sin(q.x * 8.0 + t * 0.7);
+
+    float v = sin(q.x * 14.0 + t) * 0.5 + 0.5;
+    v += sin(q.y * 10.0 - t * 0.8) * 0.3;
+    v += sin((q.x + q.y) * 6.0 + t * 0.6) * 0.2;
+    v = v / 1.5;
+    v = clamp(v, 0.0, 1.0);
+
+    vec3 col;
+    if (u_palette == 0) {
+        col = hsv2rgb(vec3(fract(v * 2.0 + t * 0.03), 0.8, 0.5 + v * 0.5));
+    } else if (u_palette == 1) {
+        col = mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 0.1, 0.3), v);
+        col = mix(col, vec3(1.0, 1.0, 0.5), smoothstep(0.4, 1.0, v));
+    } else if (u_palette == 2) {
+        col = mix(vec3(0.0, 0.0, 0.1), vec3(0.0, 0.6, 0.8), v);
+        col = mix(col, vec3(0.8, 1.0, 0.8), smoothstep(0.5, 1.0, v));
+    } else {
+        col = 0.5 + 0.5 * cos(v * 6.28 + vec3(0.0, 1.5, 3.0) + t * 0.4);
+    }
+    gl_FragColor = vec4(col, 1.0);
+}
+)";
+
+// ── Effect 7: Spiral Galaxy ──
+static const char *galaxy_frag = R"(
+precision mediump float;
+varying vec2 v_uv;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform int u_palette;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+    vec2 uv = v_uv;
+    float ar = u_resolution.x / u_resolution.y;
+    vec2 p = (uv - 0.5) * vec2(ar, 1.0);
+    float t = u_time;
+
+    float a = atan(p.y, p.x);
+    float r = length(p);
+
+    float arms = 3.0;
+    float spiral = sin(a * arms - r * 10.0 + t * 0.4) * 0.5 + 0.5;
+    float core = 1.0 - smoothstep(0.0, 0.3, r);
+    float dust = 0.5 + 0.5 * sin(r * 12.0 - t * 0.3 + a * 2.0);
+
+    float v = spiral * 0.5 + core * 0.4 + dust * 0.1;
+    v = clamp(v, 0.0, 1.0);
+
+    vec3 col;
+    if (u_palette == 0) {
+        col = mix(vec3(0.0, 0.0, 0.05), vec3(0.3, 0.1, 0.5), v);
+        col = mix(col, vec3(1.0, 0.7, 0.3), smoothstep(0.4, 0.9, v));
+    } else if (u_palette == 1) {
+        col = hsv2rgb(vec3(fract(0.6 + v * 0.4 + t * 0.01), 0.8, v * 0.5 + 0.5));
+    } else if (u_palette == 2) {
+        col = mix(vec3(0.0, 0.02, 0.1), vec3(0.0, 0.3, 0.8), v);
+        col = mix(col, vec3(0.5, 0.8, 1.0), smoothstep(0.5, 1.0, v));
+    } else {
+        col = 0.5 + 0.5 * cos(v * 5.0 + vec3(0.0, 1.0, 2.0) + t * 0.2);
+    }
+    gl_FragColor = vec4(col, 1.0);
+}
+)";
+
+// ── Effect 8: Lightning ──
+static const char *lightning_frag = R"(
+precision mediump float;
+varying vec2 v_uv;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform int u_palette;
+
+void main() {
+    vec2 uv = v_uv;
+    float ar = u_resolution.x / u_resolution.y;
+    vec2 p = (uv - 0.5) * vec2(ar, 1.0);
+    float t = u_time;
+
+    float v = 0.0;
+
+    float bolt = 1.0 - abs(p.x * 3.0 + sin(p.y * 20.0 + t * 5.0) * 0.1 + sin(p.y * 40.0 + t * 8.0) * 0.05);
+    bolt = smoothstep(0.0, 0.08, bolt);
+    v += bolt;
+
+    for (int i = 0; i < 5; i++) {
+        float fi = float(i);
+        float xoff = -0.3 + fi * 0.15 + sin(t * 2.0 + fi * 3.0) * 0.1;
+        float yoff = 0.3 + fi * 0.1;
+        vec2 bp = p - vec2(xoff, yoff);
+        float glow = exp(-length(bp) * 5.0) * 0.4;
+        float spark = 1.0 - abs(bp.x * 8.0 + sin(bp.y * 30.0 + t * 10.0 + fi * 5.0) * 0.05);
+        spark = smoothstep(0.0, 0.04, spark);
+        v += (glow + spark * 0.3) * (0.5 + 0.5 * sin(t * 3.0 + fi));
+    }
+
+    float glow = exp(-length(p - vec2(0.0, 0.3)) * 8.0) * 0.3;
+    v += glow;
+
+    v = clamp(v, 0.0, 1.0);
+
+    vec3 col;
+    if (u_palette == 0) {
+        col = mix(vec3(0.0), vec3(0.3, 0.5, 1.0), v * 2.0);
+        col = mix(col, vec3(1.0), smoothstep(0.4, 1.0, v));
+    } else if (u_palette == 1) {
+        col = mix(vec3(0.0), vec3(0.8, 0.2, 0.8), v * 2.0);
+        col = mix(col, vec3(1.0, 0.8, 1.0), smoothstep(0.4, 1.0, v));
+    } else if (u_palette == 2) {
+        col = mix(vec3(0.0), vec3(0.0, 0.8, 0.3), v * 2.0);
+        col = mix(col, vec3(0.5, 1.0, 0.5), smoothstep(0.4, 1.0, v));
+    } else {
+        col = mix(vec3(0.0), vec3(0.8, 0.0, 0.0), v * 2.0);
+        col = mix(col, vec3(1.0, 0.8, 0.3), smoothstep(0.4, 1.0, v));
+    }
+    gl_FragColor = vec4(col, 1.0);
+}
+)";
+
+// ── Effect 9: Hex Grid ──
+static const char *hexgrid_frag = R"(
+precision mediump float;
+varying vec2 v_uv;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform int u_palette;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+    vec2 uv = v_uv;
+    float ar = u_resolution.x / u_resolution.y;
+    vec2 p = (uv - 0.5) * vec2(ar, 1.0);
+    float t = u_time;
+
+    float s = 0.15;
+    vec2 q = p / s;
+    float row = floor(q.y);
+    float col = floor(q.x + 0.5 * mod(row, 2.0));
+    vec2 cell = vec2(col, row);
+    if (mod(row, 2.0) > 0.5) cell.x += 0.5;
+    vec2 diff = q - cell;
+
+    float d = length(diff);
+    float fill = 1.0 - smoothstep(0.25, 0.45, d);
+
+    float cellPhase = dot(cell, vec2(1.2, 0.8)) + t;
+    float pulse = 0.5 + 0.5 * sin(cellPhase);
+
+    float v = fill * pulse + fill * 0.3;
+
+    float edge = smoothstep(0.35, 0.45, d) - smoothstep(0.45, 0.5, d);
+    float edgeGlow = edge * (0.5 + 0.5 * sin(cellPhase * 2.0));
+    v += edgeGlow * 0.5;
+
+    v = clamp(v, 0.0, 1.0);
+
+    vec3 col;
+    if (u_palette == 0) {
+        col = mix(vec3(0.0, 0.0, 0.05), vec3(0.2, 0.6, 1.0), v);
+        col = mix(col, vec3(0.8, 1.0, 1.0), smoothstep(0.6, 1.0, v));
+    } else if (u_palette == 1) {
+        col = hsv2rgb(vec3(fract(0.05 + v * 0.5 + t * 0.02), 0.7, 0.3 + v * 0.7));
+    } else if (u_palette == 2) {
+        col = mix(vec3(0.05, 0.0, 0.05), vec3(1.0, 0.2, 0.4), v);
+        col = mix(col, vec3(1.0, 0.8, 0.4), smoothstep(0.5, 1.0, v));
+    } else {
+        col = 0.5 + 0.5 * cos(v * 6.28 + vec3(0.0, 1.0, 2.0) + t * 0.3);
+    }
+    gl_FragColor = vec4(col, 1.0);
+}
+)";
+
+// ── Effect 10: Lava ──
+static const char *lava_frag = R"(
+precision mediump float;
+varying vec2 v_uv;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform int u_palette;
+
+void main() {
+    vec2 uv = v_uv;
+    float ar = u_resolution.x / u_resolution.y;
+    vec2 p = (uv - 0.5) * vec2(ar, 1.0);
+    float t = u_time;
+
+    float v = 0.0;
+
+    for (int i = 0; i < 8; i++) {
+        float fi = float(i);
+        vec2 pos = vec2(
+            0.5 + 0.4 * sin(fi * 2.1 + t * 0.3),
+            0.5 + 0.4 * cos(fi * 1.7 + t * 0.4 + fi * 0.5)
+        );
+        pos = (pos - 0.5) * vec2(ar, 1.0);
+        float d = distance(p, pos);
+        float bubble = smoothstep(0.2, 0.0, d) * (0.5 + 0.5 * sin(t * 2.0 + fi * 3.0));
+        v += bubble;
+    }
+
+    float flow = sin(p.x * 5.0 + t * 0.5) * 0.5 + 0.5;
+    flow += sin(p.y * 7.0 + t * 0.3 + p.x * 2.0) * 0.3;
+    flow += sin((p.x + p.y) * 4.0 + t * 0.7) * 0.2;
+    flow = flow / 1.5;
+
+    float crackle = 0.5 + 0.5 * sin(p.x * 50.0 + p.y * 50.0 + t * 10.0);
+    crackle = smoothstep(0.0, 0.1, crackle);
+
+    v = v * 0.4 + flow * 0.5 + crackle * 0.1 * flow;
+    v = clamp(v, 0.0, 1.0);
+    v = pow(v, 0.8);
+
+    vec3 col;
+    if (u_palette == 0) {
+        col = mix(vec3(0.1, 0.0, 0.0), vec3(0.8, 0.1, 0.0), v);
+        col = mix(col, vec3(1.0, 0.8, 0.1), smoothstep(0.4, 1.0, v));
+    } else if (u_palette == 1) {
+        col = mix(vec3(0.0, 0.0, 0.1), vec3(0.0, 0.3, 0.8), v);
+        col = mix(col, vec3(0.3, 1.0, 0.8), smoothstep(0.5, 1.0, v));
+    } else if (u_palette == 2) {
+        col = mix(vec3(0.0, 0.1, 0.0), vec3(0.3, 0.8, 0.0), v);
+        col = mix(col, vec3(0.8, 1.0, 0.3), smoothstep(0.5, 1.0, v));
+    } else {
+        col = mix(vec3(0.1, 0.0, 0.1), vec3(0.8, 0.2, 0.8), v);
+        col = mix(col, vec3(1.0, 0.7, 1.0), smoothstep(0.4, 1.0, v));
+    }
+    gl_FragColor = vec4(col, 1.0);
+}
+)";
+
+// ── Effect 11: Ocean Waves ──
+static const char *ocean_frag = R"(
+precision mediump float;
+varying vec2 v_uv;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform int u_palette;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+    vec2 uv = v_uv;
+    float ar = u_resolution.x / u_resolution.y;
+    vec2 p = (uv - 0.5) * vec2(ar, 1.0);
+    float t = u_time;
+
+    float v = 0.0;
+    for (int i = 0; i < 6; i++) {
+        float fi = float(i);
+        float freq = 3.0 + fi * 1.5;
+        float amp = 0.5 - fi * 0.07;
+        float dirx = sin(fi * 1.3);
+        float diry = cos(fi * 0.9);
+        float phase = sin(p.x * freq * dirx + p.y * freq * diry
+                          + t * (0.8 + fi * 0.2) + fi * 2.0);
+        v += phase * amp;
+    }
+    v = v / 2.0 + 0.5;
+    v = clamp(v, 0.0, 1.0);
+
+    float foam = smoothstep(0.7, 0.9, v);
+    v += foam * 0.3;
+    v = clamp(v, 0.0, 1.0);
+
+    vec3 col;
+    if (u_palette == 0) {
+        col = mix(vec3(0.0, 0.1, 0.2), vec3(0.0, 0.4, 0.6), v);
+        col = mix(col, vec3(0.6, 0.9, 1.0), smoothstep(0.5, 1.0, v));
+    } else if (u_palette == 1) {
+        col = hsv2rgb(vec3(fract(0.7 + v * 0.2 + t * 0.01), 0.6, 0.3 + v * 0.7));
+    } else if (u_palette == 2) {
+        col = mix(vec3(0.1, 0.05, 0.0), vec3(0.8, 0.4, 0.0), v);
+        col = mix(col, vec3(1.0, 0.9, 0.4), smoothstep(0.5, 1.0, v));
+    } else {
+        col = 0.5 + 0.5 * cos(v * 4.0 + vec3(0.0, 0.5, 1.5) + t * 0.1);
+    }
+    gl_FragColor = vec4(col, 1.0);
+}
+)";
+
 // ── Implementation ──
 
 PlasmaWidget::PlasmaWidget(QWidget *parent)
@@ -229,10 +643,18 @@ PlasmaWidget::~PlasmaWidget()
 void PlasmaWidget::setupShaders()
 {
     m_effects = {
-        { "Plasma",     vshader, plasma_frag },
-        { "Fire",       vshader, fire_frag   },
-        { "Ripples",    vshader, ripple_frag },
-        { "Mandelbrot", vshader, mandel_frag },
+        { "Plasma",       vshader,       plasma_frag   },
+        { "Fire",         vshader,       fire_frag     },
+        { "Ripples",      vshader,       ripple_frag   },
+        { "Mandelbrot",   vshader,       mandel_frag   },
+        { "Tunnel",       vshader,       tunnel_frag   },
+        { "Aurora",       vshader,       aurora_frag   },
+        { "Kaleidoscope", vshader,       kaleido_frag  },
+        { "Spiral Galaxy",vshader,       galaxy_frag   },
+        { "Lightning",    vshader,       lightning_frag},
+        { "Hex Grid",     vshader,       hexgrid_frag  },
+        { "Lava",         vshader,       lava_frag     },
+        { "Ocean Waves",  vshader,       ocean_frag    },
     };
 }
 
@@ -297,7 +719,9 @@ void PlasmaWidget::paintOverlay(QPainter &p)
 
     // Text
     p.setPen(Qt::white);
-    QString text = QString("Effect: %1  |  Palette: %2  |  FPS: %3")
+    QString text = QString("Effect [%1/%2]: %3  |  Palette: %4  |  FPS: %5")
+        .arg(m_effect + 1)
+        .arg(m_effects.size())
         .arg(m_effects[m_effect].name)
         .arg(paletteName())
         .arg(m_fps);
