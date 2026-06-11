@@ -1,6 +1,0 @@
-23:03:18 **** Clean-only build of configuration x86_64-debug for project Qt6TestApp ****
-make -j16 clean 
-rm -fr build
-
-23:03:18 Build Finished. 0 errors, 0 warnings. (took 67ms)
-
