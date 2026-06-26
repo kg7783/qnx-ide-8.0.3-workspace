@@ -1,26 +1,12 @@
-#include <QApplication>
-#include <QPushButton>
-#include <QVBoxLayout>
-#include <QLabel>
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
+    QGuiApplication app(argc, argv);
 
-    QWidget window;
-    window.setWindowTitle("Qt6 on QNX");
-    window.resize(400, 300);
+    QQmlApplicationEngine engine;
+    engine.load(QUrl("qrc:/src/main.qml"));
 
-    auto *layout = new QVBoxLayout(&window);
-
-    auto *label = new QLabel("Hello from Qt6 on QNX 8.0!");
-    label->setAlignment(Qt::AlignCenter);
-    layout->addWidget(label);
-
-    auto *button = new QPushButton("Close");
-    QObject::connect(button, &QPushButton::clicked, &app, &QApplication::quit);
-    layout->addWidget(button);
-
-    window.show();
     return app.exec();
 }

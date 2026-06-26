@@ -13,10 +13,13 @@ CXX = q++ -Vgcc_nto$(PLATFORM)_cxx
 LD = $(CXX)
 
 QT6_DIR = ../../dev/Qt6_qnx
+QT6_HOST_DIR = ../../dev/Qt6_host
+RCC = $(QT6_HOST_DIR)/libexec/rcc
 
 INCLUDES += -Isrc
 INCLUDES += -I$(QT6_DIR)/include
-INCLUDES += -I$(QT6_DIR)/include/QtWidgets
+INCLUDES += -I$(QT6_DIR)/include/QtQml
+INCLUDES += -I$(QT6_DIR)/include/QtQuick
 INCLUDES += -I$(QT6_DIR)/include/QtGui
 INCLUDES += -I$(QT6_DIR)/include/QtCore
 INCLUDES += -I$(QT6_DIR)/mkspecs/qnx-x86-64-qcc
@@ -26,12 +29,25 @@ LDFLAGS_all += -Wl,-rpath-link,$(QT6_DIR)/lib
 LDFLAGS_all += -Wl,-rpath-link,$(QNX_TARGET)/x86_64/lib
 LDFLAGS_all += -Wl,-rpath-link,$(QNX_TARGET)/x86_64/usr/lib
 
-LIBS += $(QT6_DIR)/lib/libQt6Widgets.so
+LIBS += $(QT6_DIR)/lib/libQt6Quick.so
+LIBS += $(QT6_DIR)/lib/libQt6Qml.so
 LIBS += $(QT6_DIR)/lib/libQt6Gui.so
 LIBS += $(QT6_DIR)/lib/libQt6Core.so
+LIBS += $(QT6_DIR)/lib/libQt6QmlMeta.so
+LIBS += $(QT6_DIR)/lib/libQt6QmlModels.so
+LIBS += $(QT6_DIR)/lib/libQt6QmlWorkerScript.so
+LIBS += $(QT6_DIR)/lib/libQt6Network.so
+LIBS += $(QT6_DIR)/lib/libQt6OpenGL.so
+LIBS += $(QT6_DIR)/lib/libQt6DBus.so
+LIBS += $(QT6_DIR)/lib/libQt6QuickParticles.so
+LIBS += $(QT6_DIR)/lib/libQt6QuickControls2.so
+LIBS += $(QT6_DIR)/lib/libQt6QuickTemplates2.so
+LIBS += $(QT6_DIR)/lib/libQt6QuickControls2Impl.so
 LIBS += -lGLESv2 -lEGL -lm
 
-DEFINES += -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+OBJDIR = $(OUTPUT_DIR)
+
+DEFINES += -DQT_QML_LIB -DQT_QUICK_LIB -DQT_GUI_LIB -DQT_CORE_LIB
 
 CCFLAGS_release += -O2 -DQT_NO_DEBUG
 CCFLAGS_debug += -g -O0 -fno-builtin -DQT_NO_DEBUG
@@ -46,12 +62,19 @@ LDFLAGS_all += $(LDFLAGS_$(BUILD_PROFILE))
 LIBS_all += $(LIBS_$(BUILD_PROFILE))
 DEPS = -Wp,-MMD,$(@:%.o=%.d),-MT,$@
 
-OBJDIR = $(OUTPUT_DIR)
-CXX_OBJS = $(OBJDIR)/src/main.o
+CXX_OBJS = $(OBJDIR)/src/main.o $(OBJDIR)/src/resources.o
 
 .PHONY: all clean rebuild
 
 all: $(TARGET)
+
+$(OBJDIR)/src/resources.cpp: resources.qrc
+	@mkdir -p $(dir $@)
+	$(RCC) --name resources --output $@ $<
+
+$(OBJDIR)/src/resources.o: $(OBJDIR)/src/resources.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) -c $(DEPS) -o $@ $(INCLUDES) $(CCFLAGS_all) $(CCFLAGS) $(DEFINES) $<
 
 $(OBJDIR)/src/main.o: src/main.cpp
 	@mkdir -p $(dir $@)
